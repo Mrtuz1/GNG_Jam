@@ -6,12 +6,13 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using KontrolluCokus.Interaction;
 using KontrolluCokus.Inventory;
+using KontrolluCokus.DNA;
 
 namespace KontrolluCokus.Editor
 {
     /// <summary>
     /// Builds the temp-sprite prototype on top of the lab scene:
-    /// second room + doors, close-up UI, inventory UI and placeholder items.
+    /// second room + doors, close-up UI, inventory UI, DNA puzzle drugs, scanner and DNA HUD.
     /// Safe to re-run: it removes what it created before rebuilding.
     /// Run from menu: Tools > Build Prototype
     /// </summary>
@@ -41,18 +42,35 @@ namespace KontrolluCokus.Editor
                 if (old != null) Object.DestroyImmediate(old);
             }
 
-            // --- ITEMS ---
-            var serumA = CreateItem("Serum_A", "Deneysel Serum A", "Mor sıvı. Etiketinde sadece 'A' yazıyor.", ItemType.Medicine, true, "serum_a", new Color(0.6f, 0.3f, 0.9f));
-            var calm = CreateItem("Sedative", "Sakinleştirici", "Karımın her gece aldığı ilaç.", ItemType.Medicine, true, "sedative", new Color(0.3f, 0.7f, 0.9f));
-            var serumB = CreateItem("Serum_B", "Deneysel Serum B", "Kırmızı sıvı. Henüz denenmedi.", ItemType.Medicine, true, "serum_b", new Color(0.9f, 0.25f, 0.25f));
-            var note = CreateItem("Lab_Note", "Laboratuvar Notu", "Deney 37: başarısız.", ItemType.Note, false, "", new Color(0.95f, 0.9f, 0.6f));
+            // --- DRUGS (DNA puzzle) ---
+            // Wife's DNA (DNASystem default): A=Mor, B=Sari, C=Turuncu, D=Mavi
+            // One solution: Kirmizi + Mavi (A mor, D mavi), Kizil Damla -> Altin Serum (C turuncu), Konsantre Sari (B sari)
+            foreach (var oldItem in new[] { "Serum_A", "Serum_B", "Sedative", "Lab_Note" })
+                AssetDatabase.DeleteAsset($"{ItemsFolder}/{oldItem}.asset");
+
+            var red = CreateDrug("Drug_Red", "Kırmızı Serum", "Parlak kırmızı bir sıvı.", new Color(0.9f, 0.2f, 0.2f),
+                Fx(0, GeneColor.Kirmizi));
+            var blue = CreateDrug("Drug_Blue", "Mavi Serum", "Soğuk, mavi bir sıvı.", new Color(0.2f, 0.4f, 0.95f),
+                Fx(0, GeneColor.Mavi), Fx(3, GeneColor.Mavi));
+            var crimson = CreateDrug("Drug_Crimson", "Kızıl Damla (Konsantre)", "Koyu kızıl. Etiket: KONSANTRE.", new Color(0.6f, 0.05f, 0.1f),
+                Fx(2, GeneColor.Kirmizi, true), Fx(1, GeneColor.Kirmizi, true));
+            var gold = CreateDrug("Drug_Gold", "Altın Serum", "Altın sarısı, yoğun bir sıvı.", new Color(0.95f, 0.75f, 0.2f),
+                Fx(1, GeneColor.Sari), Fx(2, GeneColor.Sari));
+            var yellow = CreateDrug("Drug_Yellow", "Sarı Serum (Konsantre)", "Soluk sarı. Etiket: KONSANTRE.", new Color(1f, 0.95f, 0.5f),
+                Fx(1, GeneColor.Sari, true));
+            var night = CreateDrug("Drug_Night", "Gece Mavisi", "Neredeyse siyah, koyu mavi.", new Color(0.1f, 0.12f, 0.35f),
+                Fx(1, GeneColor.Mavi), Fx(2, GeneColor.Mavi));
+            var antidote = CreateDrug("Drug_Antidote", "Panzehir", "Tüm genleri griye döndürür.", new Color(0.9f, 0.9f, 0.9f));
+            antidote.resetsDNA = true;
+            EditorUtility.SetDirty(antidote);
+            AssetDatabase.SaveAssets();
 
             // --- LAB OBJECTS ---
             int interactableLayer = LayerMask.NameToLayer("Interactable");
-            MakeContainer(GameObject.Find("Cabinet"), "Dolap", new[] { serumA, calm });
-            MakeContainer(GameObject.Find("Shelf"), "Raf", new[] { note });
-            SetName(GameObject.Find("Desk"), "Masa");
-            SetName(GameObject.Find("ChemTable"), "Kimya Masası");
+            MakeContainer(GameObject.Find("Cabinet"), "İlaç Dolabı", new[] { red, blue }, true);
+            MakeContainer(GameObject.Find("Shelf"), "Raf", new[] { yellow }, true);
+            MakeContainer(GameObject.Find("Desk"), "Masa", new[] { antidote }, true);
+            MakeScanner(GameObject.Find("ChemTable"), "DNA Tarayıcı");
 
             // --- SECOND ROOM ---
             var room = new GameObject("Room_Storage");
@@ -66,7 +84,7 @@ namespace KontrolluCokus.Editor
 
             var fridge = Quad("Medicine_Fridge", room.transform, new Vector2(x0 + 3, 3), new Vector2(1.2f, 1.8f), new Color(0.85f, 0.9f, 0.95f), 1, true);
             fridge.layer = interactableLayer;
-            MakeContainer(fridge, "İlaç Dolabı", new[] { serumB });
+            MakeContainer(fridge, "Soğuk Depo", new[] { crimson, gold, night }, true);
 
             // --- DOORS ---
             var spawnLab = new GameObject("Spawn_Lab");
@@ -78,6 +96,20 @@ namespace KontrolluCokus.Editor
             var doorColor = new Color(0.55f, 0.4f, 0.25f);
             MakeDoor(Quad("Door_ToStorage", null, new Vector2(5.8f, 0), new Vector2(0.4f, 1.2f), doorColor, 3, true), "Depoya git", spawnStorage.transform);
             MakeDoor(Quad("Door_ToLab", room.transform, new Vector2(x0 - 5.8f, 0), new Vector2(0.4f, 1.2f), doorColor, 3, true), "Laboratuvara dön", spawnLab.transform);
+
+            // --- DNA SYSTEM ---
+            var gm = GameObject.Find("GameManager");
+            if (gm != null)
+            {
+                var dna = gm.GetComponent<DNASystem>();
+                if (dna == null) dna = gm.AddComponent<DNASystem>();
+                var dso = new SerializedObject(dna);
+                var pool = dso.FindProperty("drugPool");
+                var drugs = new[] { red, blue, crimson, gold, yellow, night };
+                pool.arraySize = drugs.Length;
+                for (int i = 0; i < drugs.Length; i++) pool.GetArrayElementAtIndex(i).objectReferenceValue = drugs[i];
+                dso.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             // --- UI ---
             BuildUI();
@@ -100,7 +132,7 @@ namespace KontrolluCokus.Editor
             var canvas = canvasGO.transform;
 
             // Controls hint
-            var hint = MakeText("Hint", canvas, "WASD: yürü   E / tıkla: etkileşim   ESC: geri   Slota tıkla: kullan", 24, TextAnchor.UpperLeft);
+            var hint = MakeText("Hint", canvas, "WASD: yürü   E / tıkla: etkileşim   ESC: geri   Slota tıkla: enjekte et", 24, TextAnchor.UpperLeft);
             Place(hint.rectTransform, new Vector2(0, 1), new Vector2(0, 1), new Vector2(470, -40), new Vector2(900, 40));
 
             // Inventory bar (bottom center)
@@ -144,14 +176,16 @@ namespace KontrolluCokus.Editor
             var template = MakeButton("ItemButtonTemplate", list.transform, "Al: Eşya", new Color(0.25f, 0.45f, 0.3f));
             ((RectTransform)template.transform).sizeDelta = new Vector2(500, 70);
 
-            var info = MakeText("InfoText", panel.transform, "", 30, TextAnchor.MiddleCenter);
-            Place(info.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(380, -180), new Vector2(500, 60));
+            var info = MakeText("InfoText", panel.transform, "", 30, TextAnchor.UpperCenter);
+            Place(info.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(380, -120), new Vector2(620, 340));
 
             var back = MakeButton("BackButton", panel.transform, "Geri (ESC)", new Color(0.5f, 0.2f, 0.2f));
             Place((RectTransform)back.transform, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 80), new Vector2(320, 80));
 
             template.gameObject.SetActive(false);
             panel.gameObject.SetActive(false);
+
+            BuildDNAUI(canvas);
 
             var manager = Object.FindAnyObjectByType<InteractionManager>();
             if (manager == null)
@@ -170,7 +204,93 @@ namespace KontrolluCokus.Editor
             mso.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        private static void BuildDNAUI(Transform canvas)
+        {
+            // Distortion overlay sits under everything else so UI stays readable
+            var overlay = MakeImage("CollapseOverlay", canvas, new Color(0.5f, 0f, 0.15f, 0f));
+            overlay.raycastTarget = false;
+            Stretch(overlay.rectTransform);
+            overlay.transform.SetAsFirstSibling();
+
+            // DNA HUD (top right)
+            var hud = MakeImage("DNA_HUD", canvas, new Color(0, 0, 0, 0.5f));
+            hud.rectTransform.pivot = new Vector2(1, 1);
+            Place(hud.rectTransform, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-20, -20), new Vector2(360, 150));
+            var hudTitle = MakeText("Title", hud.transform, "DNA'n", 24, TextAnchor.MiddleLeft);
+            Place(hudTitle.rectTransform, new Vector2(0, 1), new Vector2(0, 1), new Vector2(90, -22), new Vector2(160, 30));
+            var dose = MakeText("DoseText", hud.transform, "Doz: 0", 24, TextAnchor.MiddleRight);
+            Place(dose.rectTransform, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-90, -22), new Vector2(160, 30));
+
+            var genes = new Image[DNASystem.GENE_COUNT];
+            for (int i = 0; i < DNASystem.GENE_COUNT; i++)
+            {
+                float x = -127.5f + i * 85f;
+                var g = MakeImage("Gene_" + DNASystem.GeneNames[i], hud.transform, GeneColors.ToColor(GeneColor.Gri));
+                g.sprite = white;
+                Place(g.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x, -5), new Vector2(65, 65));
+                var l = MakeText("Label", g.transform, DNASystem.GeneNames[i], 20, TextAnchor.MiddleCenter);
+                Place(l.rectTransform, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, -16), new Vector2(60, 26));
+                genes[i] = g;
+            }
+
+            // Last injection result, under the HUD
+            var effect = MakeText("EffectText", canvas, "", 24, TextAnchor.UpperRight);
+            effect.rectTransform.pivot = new Vector2(1, 1);
+            Place(effect.rectTransform, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-20, -180), new Vector2(900, 70));
+
+            // End screen (win / collapse)
+            var end = MakeImage("EndPanel", canvas, new Color(0, 0, 0, 0.9f));
+            Stretch(end.rectTransform);
+            var endTitle = MakeText("EndTitle", end.transform, "", 64, TextAnchor.MiddleCenter);
+            Place(endTitle.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 120), new Vector2(1400, 100));
+            var endBody = MakeText("EndBody", end.transform, "", 32, TextAnchor.MiddleCenter);
+            Place(endBody.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 20), new Vector2(1400, 80));
+            var restart = MakeButton("RestartButton", end.transform, "Tekrar Dene", new Color(0.3f, 0.3f, 0.4f));
+            Place((RectTransform)restart.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -120), new Vector2(320, 80));
+            end.gameObject.SetActive(false);
+
+            var ui = hud.gameObject.AddComponent<DNAUI>();
+            var so = new SerializedObject(ui);
+            var arr = so.FindProperty("geneImages");
+            arr.arraySize = genes.Length;
+            for (int i = 0; i < genes.Length; i++) arr.GetArrayElementAtIndex(i).objectReferenceValue = genes[i];
+            so.FindProperty("doseText").objectReferenceValue = dose;
+            so.FindProperty("effectText").objectReferenceValue = effect;
+            so.FindProperty("distortionOverlay").objectReferenceValue = overlay;
+            so.FindProperty("endPanel").objectReferenceValue = end.gameObject;
+            so.FindProperty("endTitle").objectReferenceValue = endTitle;
+            so.FindProperty("endBody").objectReferenceValue = endBody;
+            so.FindProperty("restartButton").objectReferenceValue = restart;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         // ---------- helpers ----------
+
+        private static GeneEffect Fx(int gene, GeneColor color, bool overwrite = false)
+        {
+            return new GeneEffect { gene = gene, color = color, overwrite = overwrite };
+        }
+
+        private static ItemData CreateDrug(string file, string name, string desc, Color color, params GeneEffect[] effects)
+        {
+            var item = CreateItem(file, name, desc, ItemType.Medicine, true, file, color);
+            item.geneEffects = effects;
+            item.resetsDNA = false;
+            EditorUtility.SetDirty(item);
+            return item;
+        }
+
+        private static void MakeScanner(GameObject go, string displayName)
+        {
+            if (go == null) return;
+            if (go.GetComponent<ScannerInteractable>() == null)
+            {
+                var plain = go.GetComponent<Interactable>();
+                if (plain != null) Object.DestroyImmediate(plain);
+                go.AddComponent<ScannerInteractable>();
+            }
+            SetName(go, displayName);
+        }
 
         private static ItemData CreateItem(string file, string name, string desc, ItemType type, bool consumable, string effect, Color color)
         {
@@ -204,7 +324,7 @@ namespace KontrolluCokus.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void MakeContainer(GameObject go, string displayName, ItemData[] items)
+        private static void MakeContainer(GameObject go, string displayName, ItemData[] items, bool infinite)
         {
             if (go == null) return;
             var container = go.GetComponent<ContainerInteractable>();
@@ -216,6 +336,7 @@ namespace KontrolluCokus.Editor
             }
             var so = new SerializedObject(container);
             so.FindProperty("interactableName").stringValue = displayName;
+            so.FindProperty("infiniteSupply").boolValue = infinite;
             var arr = so.FindProperty("containedItems");
             arr.arraySize = items.Length;
             for (int i = 0; i < items.Length; i++)

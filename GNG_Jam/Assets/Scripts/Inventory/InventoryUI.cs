@@ -79,6 +79,12 @@ namespace KontrolluCokus.Inventory
             var item = InventorySystem.Instance.GetItem(slotIndex);
             if (item == null) return;
 
+            // Drugs are injected into the player's DNA
+            if (item.itemType == ItemType.Medicine && DNA.DNASystem.Instance != null)
+            {
+                if (!DNA.DNASystem.Instance.Inject(item)) return;
+            }
+
             // Use item (if consumable, it gets removed)
             var usedItem = InventorySystem.Instance.UseItem(slotIndex);
             if (usedItem != null)

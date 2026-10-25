@@ -20,6 +20,12 @@ namespace KontrolluCokus.Inventory
         public ItemType itemType = ItemType.Generic;
         public bool isConsumable = false;
 
+        [Header("DNA Effect (for drugs)")]
+        [Tooltip("Genes this drug colors when injected, applied in order.")]
+        public DNA.GeneEffect[] geneEffects;
+        [Tooltip("Antidote: turns every gene back to grey before applying effects.")]
+        public bool resetsDNA = false;
+
         [Header("Effect (for drugs/medicine)")]
         [Tooltip("The visual/mental effect ID this item triggers when used.")]
         public string effectId = "";
@@ -32,5 +38,17 @@ namespace KontrolluCokus.Inventory
         Key,
         Note,
         Tool
+    }
+}
+
+namespace KontrolluCokus.DNA
+{
+    [System.Serializable]
+    public struct GeneEffect
+    {
+        [Range(0, DNASystem.GENE_COUNT - 1)] public int gene;
+        public GeneColor color;
+        [Tooltip("Concentrated: replaces the gene color instead of mixing with it.")]
+        public bool overwrite;
     }
 }

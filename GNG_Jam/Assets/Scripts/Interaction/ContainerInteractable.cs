@@ -10,6 +10,8 @@ namespace KontrolluCokus.Interaction
     {
         [Header("Container Settings")]
         [SerializeField] private Inventory.ItemData[] containedItems;
+        [Tooltip("Items are never used up (e.g. a drug cabinet you can keep taking from).")]
+        [SerializeField] private bool infiniteSupply;
 
         private bool hasBeenLooted;
 
@@ -31,6 +33,7 @@ namespace KontrolluCokus.Interaction
                 return null;
 
             var item = containedItems[index];
+            if (infiniteSupply) return item;
             containedItems[index] = null;
 
             // Check if all items have been taken

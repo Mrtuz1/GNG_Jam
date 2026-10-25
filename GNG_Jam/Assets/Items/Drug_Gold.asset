@@ -10,12 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3205568098fa6cc458d63f0ff227ae03, type: 3}
-  m_Name: Lab_Note
+  m_Name: Drug_Gold
   m_EditorClassIdentifier: Assembly-CSharp::KontrolluCokus.Inventory.ItemData
-  itemName: Laboratuvar Notu
-  description: "Deney 37: ba\u015Far\u0131s\u0131z."
+  itemName: "Alt\u0131n Serum"
+  description: "Alt\u0131n sar\u0131s\u0131, yo\u011Fun bir s\u0131v\u0131."
   icon: {fileID: 0}
-  placeholderColor: {r: 0.95, g: 0.9, b: 0.6, a: 1}
-  itemType: 3
-  isConsumable: 0
-  effectId: 
+  placeholderColor: {r: 0.95, g: 0.75, b: 0.2, a: 1}
+  itemType: 1
+  isConsumable: 1
+  geneEffects:
+  - gene: 1
+    color: 3
+    overwrite: 0
+  - gene: 2
+    color: 3
+    overwrite: 0
+  resetsDNA: 0
+  effectId: Drug_Gold

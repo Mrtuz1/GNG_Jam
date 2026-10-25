@@ -80,6 +80,8 @@ namespace KontrolluCokus.Player
         {
             if (currentTarget == null) return;
 
+            if (DNA.DNASystem.Instance != null && DNA.DNASystem.Instance.IsGameOver) return;
+
             // No world interaction while the close-up view is open (or on the frame it closed)
             var manager = InteractionManager.Instance;
             if (manager != null && (manager.IsCloseUpActive || manager.LastClosedFrame == Time.frameCount)) return;

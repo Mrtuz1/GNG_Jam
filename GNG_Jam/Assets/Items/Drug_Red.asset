@@ -10,12 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3205568098fa6cc458d63f0ff227ae03, type: 3}
-  m_Name: Serum_A
+  m_Name: Drug_Red
   m_EditorClassIdentifier: Assembly-CSharp::KontrolluCokus.Inventory.ItemData
-  itemName: Deneysel Serum A
-  description: "Mor s\u0131v\u0131. Etiketinde sadece 'A' yaz\u0131yor."
+  itemName: "K\u0131rm\u0131z\u0131 Serum"
+  description: "Parlak k\u0131rm\u0131z\u0131 bir s\u0131v\u0131."
   icon: {fileID: 0}
-  placeholderColor: {r: 0.6, g: 0.3, b: 0.9, a: 1}
+  placeholderColor: {r: 0.9, g: 0.2, b: 0.2, a: 1}
   itemType: 1
   isConsumable: 1
-  effectId: serum_a
+  geneEffects:
+  - gene: 0
+    color: 1
+    overwrite: 0
+  resetsDNA: 0
+  effectId: Drug_Red

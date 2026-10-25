@@ -178,6 +178,14 @@ namespace KontrolluCokus
             spawnedItemButtons.Clear();
         }
 
+        /// <summary>
+        /// Show a message in the close-up view (e.g. scanner results). Supports rich text.
+        /// </summary>
+        public void ShowMessage(string message)
+        {
+            SetInfo(message);
+        }
+
         private void SetInfo(string message)
         {
             if (infoText != null) infoText.text = message;
